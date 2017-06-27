@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.Stateless;
@@ -18,11 +19,17 @@ import javax.jws.WebService;
  * mv target/id-gen-poc.war ~/Java/wildfly-10.1.0.Final/standalone/deployments/
  * curl http://localhost:8080/id-gen-poc/IDGenerator?wsdl
  * </pre>
+ * 
+ * <pre>
+ * Deploy in WLS 12.2 console (all defaults)
+ * curl http://172.16.210.129:7003/IDGenerator/IDGeneratorService?WSDL
+ * </pre>
  */
 @Stateless
 @WebService
 public class IDGenerator {
-	private static Object monitor = new Object();
+	private final static Logger logger = Logger.getLogger(IDGenerator.class.getName()); 
+	private final static Object monitor = new Object();
 
 	@PostConstruct
 	public void initOnce() {
@@ -32,6 +39,13 @@ public class IDGenerator {
 			try (Connection conn = connection()) {
 				try (Statement s = conn.createStatement()) {
 					s.execute("create table CATEGORY(name varchar(255) PRIMARY KEY, value int not null)");
+					
+					logger.info("Table CATEGORY created");
+				}
+				catch (SQLException e) {
+					//ignore "Table already exists" exception
+					
+					logger.info("Table CATEGORY already exists");
 				}
 			}
 		} catch (Exception e) {
@@ -68,7 +82,12 @@ public class IDGenerator {
 						ps.execute();
 					}
 				}
-				return category + "-" + currentValue;
+				
+				String result = category + "-" + currentValue;
+				
+				logger.info("New ID: " + result);
+				
+				return result;
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
